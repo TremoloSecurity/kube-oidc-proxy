@@ -75,7 +75,7 @@ func (f *Framework) BeforeEach() {
 	f.helper.KubeClient = f.KubeClientSet
 
 	By("Deploying mock OIDC Issuer")
-	issuerKeyBundle, issuerURL, err := f.helper.DeployIssuer(f.Namespace.Name)
+	issuerKeyBundle, issuerURL, err := f.helper.DeployIssuer(f.Namespace.Name, nil)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Deploying kube-oidc-proxy")
@@ -93,9 +93,17 @@ func (f *Framework) BeforeEach() {
 // AfterEach deletes the namespace, after reading its events.
 func (f *Framework) AfterEach() {
 	// Output logs from proxy of test case.
+	By("Gathering kube-oidc-proxy logs")
 	err := f.Helper().Kubectl(f.Namespace.Name).Run("logs", "-lapp=kube-oidc-proxy-e2e")
 	if err != nil {
 		By("Failed to gather logs from kube-oidc-proxy: " + err.Error())
+	}
+
+	// Output logs from the issuer of test case.
+	By("Gathering oidc-issuer logs")
+	err = f.Helper().Kubectl(f.Namespace.Name).Run("logs", "-lapp=oidc-issuer-e2e")
+	if err != nil {
+		By("Failed to gather logs from oidc-issuer: " + err.Error())
 	}
 
 	By("Deleting kube-oidc-proxy deployment")
@@ -122,6 +130,19 @@ func (f *Framework) DeployProxyWith(extraVolumes []corev1.Volume, extraArgs ...s
 	By(fmt.Sprintf("Deploying kube-oidc-proxy with extra args %s", extraArgs))
 	f.proxyKeyBundle, f.proxyURL, err = f.helper.DeployProxy(f.Namespace, f.issuerURL,
 		clientID, f.issuerKeyBundle, extraVolumes, extraArgs...)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func (f *Framework) DeployIssuerWith(extraVolumes []corev1.Volume, extraArgs ...string) {
+	By("Deleting oidc-issuer deployment")
+	err := f.Helper().DeleteIssuer(f.Namespace.Name)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = f.Helper().WaitForDeploymentToDelete(f.Namespace.Name, kind.IssuerImageName, time.Second*30)
+	Expect(err).NotTo(HaveOccurred())
+
+	By(fmt.Sprintf("Deploying oidc-issuer with extra args %s", extraArgs))
+	f.issuerKeyBundle, f.issuerURL, err = f.helper.DeployIssuer(f.Namespace.Name, extraVolumes, extraArgs...)
 	Expect(err).NotTo(HaveOccurred())
 }
 

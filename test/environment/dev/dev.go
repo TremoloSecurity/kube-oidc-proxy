@@ -98,7 +98,7 @@ func deploy() {
 
 	fmt.Printf("> created new namespace %s\n", ns.Name)
 
-	issuerKeyBundle, issuerURL, err := helper.DeployIssuer(ns.Name)
+	issuerKeyBundle, issuerURL, err := helper.DeployIssuer(ns.Name, nil)
 	errExit(err)
 
 	fmt.Printf("> deployed issuer at url %s\n", issuerURL)

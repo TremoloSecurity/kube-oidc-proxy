@@ -23,5 +23,5 @@ set -o pipefail
 export KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
 
 source "${KUBE_ROOT}/hack/lib/version.sh"
-KUBE_GO_PACKAGE=github.com/jetstack/kube-oidc-proxy
+KUBE_GO_PACKAGE=github.com/Improwised/kube-oidc-proxy
 kube::version::ldflags

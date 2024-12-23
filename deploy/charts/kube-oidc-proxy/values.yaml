@@ -57,13 +57,13 @@ oidc:
   requiredClaims: {}
 
 # To enable token passthrough feature
-# https://github.com/jetstack/kube-oidc-proxy/blob/master/docs/tasks/token-passthrough.md
+# https://github.com/Improwised/kube-oidc-proxy/blob/master/docs/tasks/token-passthrough.md
 tokenPassthrough:
   enabled: false
   audiences: []
 
 # To add extra impersonation headers
-# https://github.com/jetstack/kube-oidc-proxy/blob/master/docs/tasks/extra-impersonation-headers.md
+# https://github.com/Improwised/kube-oidc-proxy/blob/master/docs/tasks/extra-impersonation-headers.md
 extraImpersonationHeaders:
   clientIP: false
   #headers: key1=foo,key2=bar,key1=bar

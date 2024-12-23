@@ -9,7 +9,7 @@ separate providers (Google, Amazon and Digitalocean), deploying:
 - [Gangway](https://github.com/heptiolabs/gangway) web server to authenticate
   users to Dex and help generate Kubeconfig files.
 
-- [kube-oidc-proxy](https://github.com/jetstack/kube-oidc-proxy) to expose all
+- [kube-oidc-proxy](https://github.com/Improwised/kube-oidc-proxy) to expose all
   clusters to OIDC authentication.
 
 - [Contour](https://github.com/heptio/contour) as the ingress controller with

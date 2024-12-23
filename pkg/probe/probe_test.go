@@ -10,7 +10,7 @@ import (
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 
-	"github.com/jetstack/kube-oidc-proxy/pkg/util"
+	"github.com/Improwised/kube-oidc-proxy/pkg/util"
 )
 
 type fakeTokenAuthenticator struct {

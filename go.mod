@@ -1,4 +1,4 @@
-module github.com/jetstack/kube-oidc-proxy
+module github.com/Improwised/kube-oidc-proxy
 
 go 1.22.0
 

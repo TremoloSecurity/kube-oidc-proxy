@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework"
 )
 
 var _ = framework.CasesDescribe("Passthrough", func() {

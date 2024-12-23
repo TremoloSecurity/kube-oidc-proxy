@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework"
 )
 
 var _ = framework.CasesDescribe("Impersonation", func() {

@@ -14,7 +14,7 @@ import (
 	clientauthv1 "k8s.io/client-go/kubernetes/typed/authentication/v1"
 	"k8s.io/client-go/rest"
 
-	"github.com/jetstack/kube-oidc-proxy/pkg/util"
+	"github.com/Improwised/kube-oidc-proxy/pkg/util"
 )
 
 var (

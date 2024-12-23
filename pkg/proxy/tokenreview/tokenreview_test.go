@@ -9,7 +9,7 @@ import (
 
 	authv1 "k8s.io/api/authentication/v1"
 
-	"github.com/jetstack/kube-oidc-proxy/pkg/proxy/tokenreview/fake"
+	"github.com/Improwised/kube-oidc-proxy/pkg/proxy/tokenreview/fake"
 )
 
 type testT struct {

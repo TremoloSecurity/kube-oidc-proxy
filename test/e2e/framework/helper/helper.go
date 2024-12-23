@@ -4,7 +4,7 @@ package helper
 import (
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework/config"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework/config"
 )
 
 // Helper provides methods for common operations needed during tests.

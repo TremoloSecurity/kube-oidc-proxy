@@ -12,7 +12,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework"
 )
 
 var _ = framework.CasesDescribe("RBAC", func() {

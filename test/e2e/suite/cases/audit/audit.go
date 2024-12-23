@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework"
 )
 
 var _ = framework.CasesDescribe("Audit", func() {

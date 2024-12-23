@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	_ "github.com/jetstack/kube-oidc-proxy/test/e2e/suite/cases"
+	_ "github.com/Improwised/kube-oidc-proxy/test/e2e/suite/cases"
 )
 
 func init() {

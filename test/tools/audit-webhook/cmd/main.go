@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jetstack/kube-oidc-proxy/pkg/util"
-	"github.com/jetstack/kube-oidc-proxy/test/tools/audit-webhook/cmd/options"
-	"github.com/jetstack/kube-oidc-proxy/test/tools/audit-webhook/pkg/sink"
+	"github.com/Improwised/kube-oidc-proxy/pkg/util"
+	"github.com/Improwised/kube-oidc-proxy/test/tools/audit-webhook/cmd/options"
+	"github.com/Improwised/kube-oidc-proxy/test/tools/audit-webhook/pkg/sink"
 )
 
 func main() {

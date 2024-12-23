@@ -14,10 +14,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework/config"
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework/helper"
-	"github.com/jetstack/kube-oidc-proxy/test/kind"
-	"github.com/jetstack/kube-oidc-proxy/test/util"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework/config"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework/helper"
+	"github.com/Improwised/kube-oidc-proxy/test/kind"
+	"github.com/Improwised/kube-oidc-proxy/test/util"
 )
 
 var DefaultConfig = &config.Config{}

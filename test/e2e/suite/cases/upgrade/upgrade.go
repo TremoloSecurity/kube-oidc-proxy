@@ -26,8 +26,8 @@ import (
 	// required to register oidc auth plugin for rest client
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
-	"github.com/jetstack/kube-oidc-proxy/pkg/util"
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework"
+	"github.com/Improwised/kube-oidc-proxy/pkg/util"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework"
 )
 
 var _ = framework.CasesDescribe("Upgrade", func() {

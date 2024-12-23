@@ -10,8 +10,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework"
-	testutil "github.com/jetstack/kube-oidc-proxy/test/util"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework"
+	testutil "github.com/Improwised/kube-oidc-proxy/test/util"
 )
 
 var _ = framework.CasesDescribe("Headers", func() {

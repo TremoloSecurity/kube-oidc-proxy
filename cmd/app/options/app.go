@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/pflag"
 	cliflag "k8s.io/component-base/cli/flag"
 
-	"github.com/jetstack/kube-oidc-proxy/pkg/util/flags"
+	"github.com/Improwised/kube-oidc-proxy/pkg/util/flags"
 )
 
 type KubeOIDCProxyOptions struct {

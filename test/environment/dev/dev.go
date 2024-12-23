@@ -15,10 +15,10 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework/config"
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework/helper"
-	"github.com/jetstack/kube-oidc-proxy/test/environment"
-	"github.com/jetstack/kube-oidc-proxy/test/kind"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework/config"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework/helper"
+	"github.com/Improwised/kube-oidc-proxy/test/environment"
+	"github.com/Improwised/kube-oidc-proxy/test/kind"
 )
 
 const (

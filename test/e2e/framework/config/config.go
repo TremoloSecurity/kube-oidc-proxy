@@ -6,7 +6,7 @@ import (
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
-	"github.com/jetstack/kube-oidc-proxy/test/environment"
+	"github.com/Improwised/kube-oidc-proxy/test/environment"
 )
 
 type Config struct {

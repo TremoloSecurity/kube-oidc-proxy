@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 
-	"github.com/jetstack/kube-oidc-proxy/test/kind"
+	"github.com/Improwised/kube-oidc-proxy/test/kind"
 )
 
 const (

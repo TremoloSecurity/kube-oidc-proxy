@@ -7,8 +7,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/jetstack/kube-oidc-proxy/test/e2e/framework"
-	"github.com/jetstack/kube-oidc-proxy/test/kind"
+	"github.com/Improwised/kube-oidc-proxy/test/e2e/framework"
+	"github.com/Improwised/kube-oidc-proxy/test/kind"
 )
 
 var _ = framework.CasesDescribe("Readiness Probe", func() {

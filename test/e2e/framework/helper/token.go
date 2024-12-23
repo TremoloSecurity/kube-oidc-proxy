@@ -12,7 +12,7 @@ import (
 	jose "gopkg.in/square/go-jose.v2"
 	"k8s.io/client-go/rest"
 
-	"github.com/jetstack/kube-oidc-proxy/test/util"
+	"github.com/Improwised/kube-oidc-proxy/test/util"
 )
 
 func (h *Helper) NewValidRestConfig(issuerBundle, proxyBundle *util.KeyBundle,

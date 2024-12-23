@@ -11,7 +11,7 @@ import (
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
 	"k8s.io/apiserver/pkg/util/version"
 
-	"github.com/jetstack/kube-oidc-proxy/cmd/app/options"
+	"github.com/Improwised/kube-oidc-proxy/cmd/app/options"
 )
 
 type Audit struct {

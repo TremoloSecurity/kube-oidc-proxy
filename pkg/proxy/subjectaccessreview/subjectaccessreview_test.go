@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jetstack/kube-oidc-proxy/pkg/proxy/subjectaccessreview/fake"
+	"github.com/Improwised/kube-oidc-proxy/pkg/proxy/subjectaccessreview/fake"
 	v1 "k8s.io/api/authorization/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 )

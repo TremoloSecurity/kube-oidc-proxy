@@ -10,6 +10,9 @@ import (
 
 type ClientOptions struct {
 	*genericclioptions.ConfigFlags
+
+	KubeClientQPS   float32
+	KubeClientBurst int
 }
 
 func NewClientOptions(nfs *cliflag.NamedFlagSets) *ClientOptions {
@@ -27,6 +30,15 @@ func NewClientOptions(nfs *cliflag.NamedFlagSets) *ClientOptions {
 
 func (c *ClientOptions) AddFlags(fs *pflag.FlagSet) *ClientOptions {
 	c.ConfigFlags.AddFlags(fs)
+
+	// Extra flags
+	fs.Float32Var(&c.KubeClientQPS, "kube-client-qps", c.KubeClientQPS, "Sets the QPS on the app "+
+		"kubernetes client, this will configure throttling on requests sent to the apiserver "+
+		"(If not set, it will use client default ones)")
+	fs.IntVar(&c.KubeClientBurst, "kube-client-burst", c.KubeClientBurst, "Sets the burst on the app "+
+		"kubernetes client, this will configure throttling on requests sent to the apiserver"+
+		"(If not set, it will use client default ones)")
+
 	return c
 }
 

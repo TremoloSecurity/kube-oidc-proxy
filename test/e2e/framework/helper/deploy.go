@@ -244,18 +244,18 @@ func (h *Helper) DeployProxy(ns *corev1.Namespace, issuerURL *url.URL, clientID 
 	return bundle, appURL, nil
 }
 
-func (h *Helper) DeployIssuer(ns string) (*util.KeyBundle, *url.URL, error) {
+func (h *Helper) DeployIssuer(ns string, extraVolumes []corev1.Volume, extraArgs ...string) (*util.KeyBundle, *url.URL, error) {
 	cnt := corev1.Container{
 		Name:            kind.IssuerImageName,
 		Image:           kind.IssuerImageName,
 		ImagePullPolicy: corev1.PullNever,
-		Args: []string{
+		Args: append([]string{
 			"oidc-issuer",
 			"--secure-port=6443",
 			fmt.Sprintf("--issuer-url=https://oidc-issuer-e2e.%s.svc.cluster.local:6443", ns),
 			"--tls-cert-file=/tls/cert.pem",
 			"--tls-private-key-file=/tls/key.pem",
-		},
+		}, extraArgs...),
 		VolumeMounts: []corev1.VolumeMount{
 			corev1.VolumeMount{
 				MountPath: "/tls",
@@ -270,7 +270,15 @@ func (h *Helper) DeployIssuer(ns string) (*util.KeyBundle, *url.URL, error) {
 		},
 	}
 
-	bundle, appURL, err := h.deployApp(ns, kind.IssuerImageName, corev1.ServiceTypeClusterIP, cnt)
+	for _, v := range extraVolumes {
+		cnt.VolumeMounts = append(cnt.VolumeMounts, corev1.VolumeMount{
+			MountPath: fmt.Sprintf("/%s", v.Name),
+			Name:      v.Name,
+			ReadOnly:  true,
+		})
+	}
+
+	bundle, appURL, err := h.deployApp(ns, kind.IssuerImageName, corev1.ServiceTypeClusterIP, cnt, extraVolumes...)
 	if err != nil {
 		return nil, nil, err
 	}

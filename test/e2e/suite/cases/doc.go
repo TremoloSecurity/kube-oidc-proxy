@@ -5,6 +5,7 @@ import (
 	_ "github.com/jetstack/kube-oidc-proxy/test/e2e/suite/cases/audit"
 	_ "github.com/jetstack/kube-oidc-proxy/test/e2e/suite/cases/headers"
 	_ "github.com/jetstack/kube-oidc-proxy/test/e2e/suite/cases/impersonation"
+	_ "github.com/jetstack/kube-oidc-proxy/test/e2e/suite/cases/mtls"
 	_ "github.com/jetstack/kube-oidc-proxy/test/e2e/suite/cases/passthrough"
 	_ "github.com/jetstack/kube-oidc-proxy/test/e2e/suite/cases/probe"
 	_ "github.com/jetstack/kube-oidc-proxy/test/e2e/suite/cases/rbac"

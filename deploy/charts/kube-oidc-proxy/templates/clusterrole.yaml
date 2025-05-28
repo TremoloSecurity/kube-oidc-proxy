@@ -20,6 +20,7 @@ rules:
   - "userextras/remote-client-ip"
   - "tokenreviews"
   # to support end user impersonation
+  - "userextras/authentication.kubernetes.io/credential-id"
   - "userextras/originaluser.jetstack.io-user"
   - "userextras/originaluser.jetstack.io-groups"
   - "userextras/originaluser.jetstack.io-extra"

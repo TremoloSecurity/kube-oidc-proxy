@@ -21,7 +21,7 @@ func main() {
 		Short: "A very basic OIDC issuer to present a well-known endpoint.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			iss, err := issuer.New(opts.IssuerURL, opts.KeyFile, opts.CertFile, stopCh)
+			iss, err := issuer.New(opts.IssuerURL, opts.KeyFile, opts.CertFile, opts.ClientCACertFile, stopCh)
 			if err != nil {
 				return err
 			}

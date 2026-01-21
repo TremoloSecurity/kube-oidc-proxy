@@ -11,8 +11,9 @@ type Options struct {
 
 	IssuerURL string
 
-	KeyFile  string
-	CertFile string
+	KeyFile          string
+	CertFile         string
+	ClientCACertFile string
 }
 
 func (o *Options) AddFlags(cmd *cobra.Command) {
@@ -34,6 +35,9 @@ func (o *Options) AddFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&o.CertFile, "tls-cert-file",
 		"/etc/oidc/key.pem", "File location to certificate for serving.")
 	o.must(cmd.MarkPersistentFlagRequired("tls-cert-file"))
+
+	cmd.PersistentFlags().StringVar(&o.ClientCACertFile, "tls-client-ca-file",
+		"", "File location to the CA bundle to verify client certificates.")
 }
 
 func (o *Options) must(err error) {

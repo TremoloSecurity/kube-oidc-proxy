@@ -4,6 +4,8 @@ package options
 import (
 	"fmt"
 
+	"k8s.io/apiserver/pkg/server/options"
+
 	"github.com/spf13/pflag"
 
 	cliflag "k8s.io/component-base/cli/flag"
@@ -19,6 +21,7 @@ type OIDCAuthenticationOptions struct {
 	GroupsPrefix   string
 	SigningAlgs    []string
 	RequiredClaims map[string]string
+	ClientCertKey  options.CertKey
 }
 
 func NewOIDCAuthenticationOptions(nfs *cliflag.NamedFlagSets) *OIDCAuthenticationOptions {
@@ -26,8 +29,17 @@ func NewOIDCAuthenticationOptions(nfs *cliflag.NamedFlagSets) *OIDCAuthenticatio
 }
 
 func (o *OIDCAuthenticationOptions) Validate() error {
-	if o != nil && (len(o.IssuerURL) > 0) != (len(o.ClientID) > 0) {
+	if o == nil {
+		return nil
+	}
+
+	if (len(o.IssuerURL) > 0) != (len(o.ClientID) > 0) {
 		return fmt.Errorf("oidc-issuer-url and oidc-client-id should be specified together")
+	}
+
+	if ((o.ClientCertKey.CertFile != "") && (o.ClientCertKey.KeyFile == "")) ||
+		(o.ClientCertKey.CertFile == "" && o.ClientCertKey.KeyFile != "") {
+		return fmt.Errorf("oidc-tls-client-cert-file and oidc-tls-client-cert-key must be specified together")
 	}
 
 	return nil
@@ -60,6 +72,14 @@ func (o *OIDCAuthenticationOptions) AddFlags(fs *pflag.FlagSet) *OIDCAuthenticat
 	fs.StringVar(&o.GroupsPrefix, "oidc-groups-prefix", "", ""+
 		"If provided, all groups will be prefixed with this value to prevent conflicts with "+
 		"other authentication strategies.")
+
+	fs.StringVar(&o.ClientCertKey.CertFile, "oidc-tls-client-cert-file", "", ""+
+		"The absolute path to a X.509 client certificate. If provided, HTTPS requests made to the OIDC issuer will "+
+		"use mTLS.  Also requires --oidc-tls-client-key-file.")
+
+	fs.StringVar(&o.ClientCertKey.KeyFile, "oidc-tls-client-key-file", "", ""+
+		"The absolute path to a X.509 private key. If provided, HTTPS requests made to the OIDC issuer will use mTLS."+
+		"Also requires --oidc-tls-client-cert-file.")
 
 	fs.StringSliceVar(&o.SigningAlgs, "oidc-signing-algs", []string{"RS256"}, ""+
 		"Comma-separated list of allowed JOSE asymmetric signing algorithms. JWTs with a "+

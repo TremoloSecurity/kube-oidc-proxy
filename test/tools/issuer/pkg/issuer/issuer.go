@@ -3,27 +3,30 @@ package issuer
 
 import (
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net"
 	"net/http"
-
-	log "github.com/sirupsen/logrus"
+	"os"
+	"time"
 )
 
 type Issuer struct {
 	issuerURL         string
 	keyFile, certFile string
+	clientCAFile      string
 
 	sk *rsa.PrivateKey
 
 	stopCh <-chan struct{}
 }
 
-func New(issuerURL, keyFile, certFile string, stopCh <-chan struct{}) (*Issuer, error) {
+func New(issuerURL, keyFile, certFile, clientCAFile string, stopCh <-chan struct{}) (*Issuer, error) {
 	b, err := ioutil.ReadFile(keyFile)
 	if err != nil {
 		return nil, err
@@ -41,11 +44,12 @@ func New(issuerURL, keyFile, certFile string, stopCh <-chan struct{}) (*Issuer, 
 	}
 
 	return &Issuer{
-		keyFile:   keyFile,
-		certFile:  certFile,
-		issuerURL: issuerURL,
-		sk:        sk,
-		stopCh:    stopCh,
+		keyFile:      keyFile,
+		certFile:     certFile,
+		clientCAFile: clientCAFile,
+		issuerURL:    issuerURL,
+		sk:           sk,
+		stopCh:       stopCh,
 	}, nil
 }
 
@@ -68,7 +72,17 @@ func (i *Issuer) Run(bindAddress, listenPort string) (<-chan struct{}, error) {
 	go func() {
 		defer close(compCh)
 
-		err := http.ServeTLS(l, i, i.certFile, i.keyFile)
+		config, err := i.setupTLSConfig()
+		if err != nil {
+			log.Errorf("failed to setup TLS config: %v", err)
+			return
+		}
+
+		server := http.Server{Handler: i,
+			TLSConfig: config,
+		}
+
+		err = server.ServeTLS(l, i.certFile, i.keyFile)
 		if err != nil {
 			log.Errorf("stopped serving TLS (%s): %s", serveAddr, err)
 		}
@@ -107,6 +121,62 @@ func (i *Issuer) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			log.Errorf("failed to write data to resposne: %s", err)
 		}
 	}
+}
+
+// setupTLSConfig sets up a tls.Config object suitable for use with the issuer's
+// HTTPS server.  If mTLS is not enabled then this returns a simple config
+// object.  If mTLS is enabled then the TLS config object is set up to verify
+// incoming client certificates.
+func (i *Issuer) setupTLSConfig() (*tls.Config, error) {
+	config := &tls.Config{ClientAuth: tls.NoClientCert}
+	if i.clientCAFile != "" {
+		log.Infof("mock issuer requiring client certificates")
+
+		pool := x509.NewCertPool()
+		caBundle, err := os.ReadFile(i.clientCAFile)
+		if err != nil {
+			log.Errorf("failed to read CA bundle: %v", err)
+			return nil, err
+		}
+
+		if !pool.AppendCertsFromPEM(caBundle) {
+			log.Errorf("failed to parse CA bundle")
+			return nil, err
+		}
+
+		config.ClientCAs = pool
+
+		// Unfortunately, the utility used to generate the self-signed
+		// certificates used in the test is hardcoded to specify an extended key
+		// usage of "server auth" therefore we need to override the certificate
+		// verification to skip checking the certificate's extended key usage
+		// otherwise the test would fail as the server expects a certificate
+		// with a usage of "client auth".
+		// Alternatively, the certificate utility could have been cloned simply
+		// to override the extended key usage, but for the purpose this test
+		// customizing the verification handling is far simpler.
+		config.ClientAuth = tls.RequestClientCert
+		config.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+			opts := x509.VerifyOptions{
+				Roots:       pool,
+				CurrentTime: time.Now(),
+				// As per comment above, ignore key usage since the utility is
+				// not able to set it to the right value for these tests.
+				KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+			}
+
+			if len(rawCerts) == 0 {
+				return fmt.Errorf("no client certificates provided")
+			}
+
+			cert, err := x509.ParseCertificate(rawCerts[0])
+			log.Infof("verifying certificate for client '%s'", cert.Subject)
+			_, err = cert.Verify(opts)
+			return err
+		}
+	}
+
+	return config, nil
 }
 
 func (i *Issuer) wellKnownResponse() []byte {

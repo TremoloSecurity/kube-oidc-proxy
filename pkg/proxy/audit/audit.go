@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/jetstack/kube-oidc-proxy/cmd/app/options"
 	"k8s.io/apimachinery/pkg/util/sets"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	"k8s.io/apiserver/pkg/server"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
+	"k8s.io/component-base/compatibility"
 	"k8s.io/component-base/version"
-
-	"github.com/jetstack/kube-oidc-proxy/cmd/app/options"
 )
 
 type Audit struct {
@@ -39,7 +39,8 @@ func New(opts *options.AuditOptions, externalAddress string, secureServingInfo *
 		return nil, err
 	}
 
-	serverConfig.EffectiveVersion = version.NewEffectiveVersion("1.0.31")
+	serverConfig.EffectiveVersion = compatibility.NewEffectiveVersionFromString(version.Get().String(), version.Get().String(), version.Get().String())
+
 	completed := serverConfig.Complete(nil)
 
 	return &Audit{

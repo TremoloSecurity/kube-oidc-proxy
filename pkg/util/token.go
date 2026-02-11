@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 // Return just the token from the header of the request, without 'bearer'.
@@ -40,7 +40,7 @@ func ParseTokenFromRequest(req *http.Request) (string, bool) {
 // signed by a generated key. This is useful for checking the status of a
 // signer.
 func FakeJWT(issuerURL string) (string, error) {
-	key := []byte("secret")
+	key := []byte("this-is-a-32-byte-long-secret-key!!!!")
 
 	sig, err := jose.NewSigner(
 		jose.SigningKey{Algorithm: jose.HS256, Key: key},
@@ -56,5 +56,5 @@ func FakeJWT(issuerURL string) (string, error) {
 		Audience:  jwt.Audience(nil),
 	}
 
-	return jwt.Signed(sig).Claims(cl).CompactSerialize()
+	return jwt.Signed(sig).Claims(cl).Serialize()
 }

@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -46,7 +46,7 @@ var _ = framework.CasesDescribe("Upgrade", func() {
 				Containers: []corev1.Container{
 					{
 						Name:            "echoserver",
-						Image:           "gcr.io/google_containers/echoserver:1.4",
+						Image:           "gcr.io/google_containers/echoserver:1.10",
 						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 				},
@@ -144,8 +144,8 @@ var _ = framework.CasesDescribe("Upgrade", func() {
 		By(fmt.Sprintf("exec output %s/%s: %s", pod.Namespace, pod.Name, execOut.String()))
 
 		// should have correct stdout output from echo server
-		if !strings.HasSuffix(execOut.String(), "BODY:\nhello world") {
-			err := fmt.Errorf("got unexpected echoserver response: exp=...hello world got=%s",
+		if !strings.Contains(execOut.String(), "Request Body:\nhello world") {
+			err := fmt.Errorf("got unexpected echoserver response: exp=Request Body:\\nhello world got=%s",
 				execOut.String())
 			Expect(err).NotTo(HaveOccurred())
 		}
@@ -181,7 +181,7 @@ var _ = framework.CasesDescribe("Upgrade", func() {
 			restConfig: restConfig,
 		}
 
-		errCh := make(chan error)
+		errCh := make(chan error, 1)
 
 		go func() {
 			defer close(pfopts.stopCh)
@@ -193,33 +193,49 @@ var _ = framework.CasesDescribe("Upgrade", func() {
 
 			portInR := bytes.NewReader([]byte("hello world"))
 
+			client := &http.Client{
+				Timeout: 10 * time.Second,
+				Transport: &http.Transport{
+					DisableKeepAlives: true,
+				},
+			}
+
 			// send message through port forward
-			resp, err := http.Post(
-				fmt.Sprintf("http://127.0.0.1:%s", freePort), "", portInR)
+			fmt.Println("Pre-post")
+			resp, err := client.Post(fmt.Sprintf("http://127.0.0.1:%s", freePort), "", portInR)
 			if err != nil {
 				errCh <- err
 				return
 			}
+			fmt.Println("pre defer")
+			defer resp.Body.Close()
+			fmt.Println("post defer")
+			//_, _ = io.ReadAll(resp.Body)
+			fmt.Println("drain body")
 
 			// expect 200 resp and correct body
+
 			if resp.StatusCode != 200 {
 				errCh <- fmt.Errorf("got unexpected response code from server, exp=200 got=%d",
 					resp.StatusCode)
 				return
 			}
 
-			body, err := ioutil.ReadAll(resp.Body)
+			fmt.Println("read data")
+			body, err := io.ReadAll(resp.Body)
+			fmt.Println("data read")
 			if err != nil {
 				errCh <- fmt.Errorf("failed to read body: %s", err)
 				return
 			}
-
+			fmt.Printf("check for data %s\n", string(body))
 			// should have correct output from echo server
-			if !bytes.HasSuffix(body, []byte("BODY:\nhello world")) {
+			if !bytes.Contains(body, []byte("Request Body:\nhello world")) {
 				errCh <- fmt.Errorf("execOut.String())got unexpected echoserver response: exp=...hello world got=%s",
 					body)
 				return
 			}
+			fmt.Println("after check")
 		}()
 
 		By("Running port forward")

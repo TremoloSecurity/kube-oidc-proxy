@@ -33,7 +33,7 @@ endif
 
 $(BINDIR)/mockgen:
 	mkdir -p $(BINDIR)
-	go build -o $(BINDIR)/mockgen github.com/golang/mock/mockgen
+	go build -o $(BINDIR)/mockgen go.uber.org/mock/mockgen
 
 $(BINDIR)/kubectl:
 	mkdir -p $(BINDIR)

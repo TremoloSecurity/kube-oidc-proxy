@@ -60,7 +60,7 @@ func (h *HealthCheck) Check() error {
 	_, _, err := h.oidcAuther.AuthenticateToken(ctx, h.fakeJWT)
 	if err != nil && strings.HasSuffix(err.Error(), "authenticator not initialized") {
 		err = fmt.Errorf("OIDC provider not yet initialized: %s", err)
-		klog.V(4).Infof(err.Error())
+		klog.V(4).Infof("%v", err.Error())
 		return err
 	}
 

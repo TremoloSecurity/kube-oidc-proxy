@@ -1,3 +1,10 @@
+# 1.0.11
+
+**bugs:**
+ - Critical Vulnerability CVE-2025-68121 [\#78](https://github.com/TremoloSecurity/kube-oidc-proxy/issues/78)
+
+# 1.0.10
+
 **tasks:**
  - 1.0.10 build [\#74](https://github.com/TremoloSecurity/kube-oidc-proxy/issues/74)
  

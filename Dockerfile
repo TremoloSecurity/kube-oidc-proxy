@@ -1,5 +1,5 @@
 # Copyright Jetstack Ltd. See LICENSE for details.
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 LABEL description="OIDC reverse proxy authenticator based on Kubernetes"
 
 ARG TARGETARCH

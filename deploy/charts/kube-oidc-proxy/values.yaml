@@ -56,6 +56,25 @@ oidc:
     - RS256
   requiredClaims: {}
 
+  # Extra OIDC providers accepted in addition to the primary issuerUrl/clientId.
+  # Each provider has its own audiences, claim mappings, and optional CEL expressions.
+  # audienceMatchPolicy is always MatchAny.
+  #
+  # Example:
+  #   extraProviders:
+  #     - issuerUrl: "https://peiko-git.space"
+  #       audiences:
+  #         - "peiko-git.space"
+  #         - "https://peiko-git.space"
+  #       usernameExpression: "'jwt_sso:gitlab:' + claims.iss"
+  #       groupsExpression: "['jwt_sso:gitlab:project_path:' + claims.project_path, 'jwt_sso:gitlab:namespace_path:' + claims.namespace_path]"
+  #     - issuerUrl: "https://accounts.google.com"
+  #       audiences:
+  #         - "my-client-id.apps.googleusercontent.com"
+  #       usernameClaim: "email"
+  #       usernamePrefix: ""
+  extraProviders: []
+
 # To enable token passthrough feature
 # https://github.com/jetstack/kube-oidc-proxy/blob/master/docs/tasks/token-passthrough.md
 tokenPassthrough:

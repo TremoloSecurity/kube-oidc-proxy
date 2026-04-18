@@ -3,6 +3,7 @@ package options
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/pflag"
 
@@ -19,6 +20,11 @@ type OIDCAuthenticationOptions struct {
 	GroupsPrefix   string
 	SigningAlgs    []string
 	RequiredClaims map[string]string
+
+	// ExtraProvidersConfig is a path to a JSON file with extra OIDC provider
+	// definitions. Each entry supports its own audiences, claim mappings, and
+	// CEL expressions. See ExtraOIDCProvider for the schema.
+	ExtraProvidersConfig string
 }
 
 func NewOIDCAuthenticationOptions(nfs *cliflag.NamedFlagSets) *OIDCAuthenticationOptions {
@@ -28,6 +34,12 @@ func NewOIDCAuthenticationOptions(nfs *cliflag.NamedFlagSets) *OIDCAuthenticatio
 func (o *OIDCAuthenticationOptions) Validate() error {
 	if o != nil && (len(o.IssuerURL) > 0) != (len(o.ClientID) > 0) {
 		return fmt.Errorf("oidc-issuer-url and oidc-client-id should be specified together")
+	}
+
+	if o.ExtraProvidersConfig != "" {
+		if _, err := os.Stat(o.ExtraProvidersConfig); err != nil {
+			return fmt.Errorf("oidc-extra-providers-config file not found: %w", err)
+		}
 	}
 
 	return nil
@@ -70,6 +82,11 @@ func (o *OIDCAuthenticationOptions) AddFlags(fs *pflag.FlagSet) *OIDCAuthenticat
 		"A key=value pair that describes a required claim in the ID Token. "+
 		"If set, the claim is verified to be present in the ID Token with a matching value. "+
 		"Repeat this flag to specify multiple claims.")
+
+	fs.StringVar(&o.ExtraProvidersConfig, "oidc-extra-providers-config", "",
+		"Path to a JSON file containing extra OIDC provider configurations. "+
+			"Each provider can have its own audiences, claim mappings, and CEL expressions. "+
+			"See ExtraOIDCProvider for the full schema.")
 
 	return o
 }

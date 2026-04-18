@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"time"
 
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
+	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/plugin/pkg/authenticator/token/oidc"
 	"k8s.io/client-go/rest"
@@ -54,7 +56,7 @@ type Config struct {
 type errorHandlerFn func(http.ResponseWriter, *http.Request, error)
 
 type Proxy struct {
-	oidcRequestAuther     *bearertoken.Authenticator
+	oidcRequestAuther     authenticator.Request
 	tokenAuther           authenticator.Token
 	tokenReviewer         *tokenreview.TokenReview
 	subjectAccessReviewer *subjectaccessreview.SubjectAccessReview
@@ -95,14 +97,13 @@ func New(restConfig *rest.Config,
 		CAFile: oidcOptions.CAFile,
 	}
 
-	// setup static JWT Auhenticator
-	jwtConfig := apiserver.JWTAuthenticator{
+	// build the primary OIDC authenticator
+	primaryJWTConfig := apiserver.JWTAuthenticator{
 		Issuer: apiserver.Issuer{
 			URL:                  oidcOptions.IssuerURL,
 			Audiences:            []string{oidcOptions.ClientID},
 			CertificateAuthority: string(caFromFile.CurrentCABundleContent()),
 		},
-
 		ClaimMappings: apiserver.ClaimMappings{
 			Username: apiserver.PrefixedClaimOrExpression{
 				Claim:  oidcOptions.UsernameClaim,
@@ -115,15 +116,77 @@ func New(restConfig *rest.Config,
 		},
 	}
 
-	// generate tokenAuther from oidc config
-	tokenAuther, err := oidc.New(ctx.TODO(), oidc.Options{
+	primaryTokenAuther, err := oidc.New(ctx.TODO(), oidc.Options{
 		CAContentProvider: caFromFile,
 		//RequiredClaims:       oidcOptions.RequiredClaims,
 		SupportedSigningAlgs: oidcOptions.SigningAlgs,
-		JWTAuthenticator:     jwtConfig,
+		JWTAuthenticator:     primaryJWTConfig,
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	// build union of all request authenticators (primary + extra providers)
+	requestAuthers := []authenticator.Request{bearertoken.New(primaryTokenAuther)}
+
+	if oidcOptions.ExtraProvidersConfig != "" {
+		extraProviders, err := options.LoadExtraProviders(oidcOptions.ExtraProvidersConfig)
+		if err != nil {
+			return nil, fmt.Errorf("loading extra OIDC providers: %w", err)
+		}
+		for _, p := range extraProviders {
+			caContent := caFromFile.CurrentCABundleContent()
+			if p.CAFile != "" {
+				caContent, _ = os.ReadFile(p.CAFile)
+			}
+
+			var usernameMapping apiserver.PrefixedClaimOrExpression
+			if p.UsernameExpression != "" {
+				usernameMapping = apiserver.PrefixedClaimOrExpression{
+					Expression: p.UsernameExpression,
+				}
+			} else {
+				usernamePrefix := p.UsernamePrefix
+				usernameMapping = apiserver.PrefixedClaimOrExpression{
+					Claim:  p.UsernameClaim,
+					Prefix: &usernamePrefix,
+				}
+			}
+
+			var groupsMapping apiserver.PrefixedClaimOrExpression
+			if p.GroupsExpression != "" {
+				groupsMapping = apiserver.PrefixedClaimOrExpression{
+					Expression: p.GroupsExpression,
+				}
+			} else {
+				groupsPrefix := p.GroupsPrefix
+				groupsMapping = apiserver.PrefixedClaimOrExpression{
+					Claim:  p.GroupsClaim,
+					Prefix: &groupsPrefix,
+				}
+			}
+
+			extraJWTConfig := apiserver.JWTAuthenticator{
+				Issuer: apiserver.Issuer{
+					URL:                  p.IssuerURL,
+					Audiences:            p.Audiences,
+					AudienceMatchPolicy:  apiserver.AudienceMatchPolicyMatchAny,
+					CertificateAuthority: string(caContent),
+				},
+				ClaimMappings: apiserver.ClaimMappings{
+					Username: usernameMapping,
+					Groups:   groupsMapping,
+				},
+			}
+			extraTokenAuther, err := oidc.New(ctx.TODO(), oidc.Options{
+				SupportedSigningAlgs: oidcOptions.SigningAlgs,
+				JWTAuthenticator:     extraJWTConfig,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to create extra OIDC authenticator for %s: %w", p.IssuerURL, err)
+			}
+			requestAuthers = append(requestAuthers, bearertoken.New(extraTokenAuther))
+		}
 	}
 
 	auditor, err := audit.New(auditOptions, config.ExternalAddress, ssinfo)
@@ -138,8 +201,8 @@ func New(restConfig *rest.Config,
 		subjectAccessReviewer: subjectAccessReviewer,
 		secureServingInfo:     ssinfo,
 		config:                config,
-		oidcRequestAuther:     bearertoken.New(tokenAuther),
-		tokenAuther:           tokenAuther,
+		oidcRequestAuther:     unionauth.New(requestAuthers...),
+		tokenAuther:           primaryTokenAuther,
 		auditor:               auditor,
 	}, nil
 }

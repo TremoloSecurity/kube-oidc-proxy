@@ -60,7 +60,10 @@ spec:
           - "--oidc-signing-algs=$(OIDC_SIGNING_ALGS)"
           {{ end }}
           {{- if .Values.oidc.requiredClaims }}
-          - "--oidc-signing-algs=$(OIDC_REQUIRED_CLAIMS)"
+          - "--oidc-required-claims=$(OIDC_REQUIRED_CLAIMS)"
+          {{ end }}
+          {{- if .Values.oidc.extraProviders }}
+          - "--oidc-extra-providers-config=/etc/oidc/extra-providers/extra-providers.json"
           {{ end }}
           {{- if .Values.tokenPassthrough.enabled }}
           - "--token-passthrough"
@@ -139,6 +142,11 @@ spec:
           - name: kube-oidc-proxy-tls
             mountPath: /etc/oidc/tls
             readOnly: true
+          {{- if .Values.oidc.extraProviders }}
+          - name: extra-providers-config
+            mountPath: /etc/oidc/extra-providers
+            readOnly: true
+          {{ end }}
           {{- if .Values.extraVolumeMounts }}{{ toYaml .Values.extraVolumeMounts | trim | nindent 10 }}{{ end }}
       volumes:
         {{ if .Values.oidc.caPEM }}
@@ -148,6 +156,11 @@ spec:
             items:
             - key: oidc.ca-pem
               path: oidc-ca.pem
+        {{ end }}
+        {{- if .Values.oidc.extraProviders }}
+        - name: extra-providers-config
+          configMap:
+            name: {{ include "kube-oidc-proxy.fullname" . }}-extra-providers
         {{ end }}
         {{- if .Values.extraVolumes }}{{ toYaml .Values.extraVolumes | trim | nindent 8 }}{{ end }}
         - name: kube-oidc-proxy-tls

@@ -1,0 +1,11 @@
+{{- if .Values.oidc.extraProviders }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kube-oidc-proxy.fullname" . }}-extra-providers
+  labels:
+{{ include "kube-oidc-proxy.labels" . | indent 4 }}
+data:
+  extra-providers.json: |
+    {{ .Values.oidc.extraProviders | toJson | nindent 4 }}
+{{- end }}

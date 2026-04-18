@@ -116,12 +116,18 @@ func New(restConfig *rest.Config,
 		},
 	}
 
-	primaryTokenAuther, err := oidc.New(ctx.TODO(), oidc.Options{
-		CAContentProvider: caFromFile,
-		//RequiredClaims:       oidcOptions.RequiredClaims,
+	// Only pass a CAContentProvider when an actual CA file is configured;
+	// passing one with empty content causes the k8s library to fail validation.
+	primaryOIDCOpts := oidc.Options{
+		//RequiredClaims:   oidcOptions.RequiredClaims,
 		SupportedSigningAlgs: oidcOptions.SigningAlgs,
 		JWTAuthenticator:     primaryJWTConfig,
-	})
+	}
+	if oidcOptions.CAFile != "" {
+		primaryOIDCOpts.CAContentProvider = caFromFile
+	}
+
+	primaryTokenAuther, err := oidc.New(ctx.TODO(), primaryOIDCOpts)
 	if err != nil {
 		return nil, err
 	}

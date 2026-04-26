@@ -245,14 +245,20 @@ func (h *Helper) DeployProxy(ns *corev1.Namespace, issuerURL *url.URL, clientID 
 }
 
 func (h *Helper) DeployIssuer(ns string) (*util.KeyBundle, *url.URL, error) {
+	return h.DeployNamedIssuer(ns, kind.IssuerImageName)
+}
+
+// DeployNamedIssuer deploys an OIDC issuer with a custom service name.
+// This allows multiple issuers to coexist in the same namespace for multi-provider tests.
+func (h *Helper) DeployNamedIssuer(ns, name string) (*util.KeyBundle, *url.URL, error) {
 	cnt := corev1.Container{
-		Name:            kind.IssuerImageName,
+		Name:            name,
 		Image:           kind.IssuerImageName,
 		ImagePullPolicy: corev1.PullNever,
 		Args: []string{
 			"oidc-issuer",
 			"--secure-port=6443",
-			fmt.Sprintf("--issuer-url=https://oidc-issuer-e2e.%s.svc.cluster.local:6443", ns),
+			fmt.Sprintf("--issuer-url=https://%s.%s.svc.cluster.local:6443", name, ns),
 			"--tls-cert-file=/tls/cert.pem",
 			"--tls-private-key-file=/tls/key.pem",
 		},
@@ -270,7 +276,7 @@ func (h *Helper) DeployIssuer(ns string) (*util.KeyBundle, *url.URL, error) {
 		},
 	}
 
-	bundle, appURL, err := h.deployApp(ns, kind.IssuerImageName, corev1.ServiceTypeClusterIP, cnt)
+	bundle, appURL, err := h.deployApp(ns, name, corev1.ServiceTypeClusterIP, cnt)
 	if err != nil {
 		return nil, nil, err
 	}

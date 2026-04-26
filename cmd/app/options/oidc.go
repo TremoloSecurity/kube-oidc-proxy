@@ -21,10 +21,10 @@ type OIDCAuthenticationOptions struct {
 	SigningAlgs    []string
 	RequiredClaims map[string]string
 
-	// ExtraProvidersConfig is a path to a JSON file with extra OIDC provider
-	// definitions. Each entry supports its own audiences, claim mappings, and
-	// CEL expressions. See ExtraOIDCProvider for the schema.
-	ExtraProvidersConfig string
+	// AuthenticationConfig is a path to a Kubernetes AuthenticationConfiguration
+	// YAML file (apiVersion: apiserver.config.k8s.io/v1beta1). The jwt field
+	// defines additional OIDC providers accepted alongside the primary --oidc-issuer-url.
+	AuthenticationConfig string
 }
 
 func NewOIDCAuthenticationOptions(nfs *cliflag.NamedFlagSets) *OIDCAuthenticationOptions {
@@ -36,9 +36,9 @@ func (o *OIDCAuthenticationOptions) Validate() error {
 		return fmt.Errorf("oidc-issuer-url and oidc-client-id should be specified together")
 	}
 
-	if o.ExtraProvidersConfig != "" {
-		if _, err := os.Stat(o.ExtraProvidersConfig); err != nil {
-			return fmt.Errorf("oidc-extra-providers-config file not found: %w", err)
+	if o.AuthenticationConfig != "" {
+		if _, err := os.Stat(o.AuthenticationConfig); err != nil {
+			return fmt.Errorf("authentication-config file not found: %w", err)
 		}
 	}
 
@@ -83,10 +83,10 @@ func (o *OIDCAuthenticationOptions) AddFlags(fs *pflag.FlagSet) *OIDCAuthenticat
 		"If set, the claim is verified to be present in the ID Token with a matching value. "+
 		"Repeat this flag to specify multiple claims.")
 
-	fs.StringVar(&o.ExtraProvidersConfig, "oidc-extra-providers-config", "",
-		"Path to a JSON file containing extra OIDC provider configurations. "+
-			"Each provider can have its own audiences, claim mappings, and CEL expressions. "+
-			"See ExtraOIDCProvider for the full schema.")
+	fs.StringVar(&o.AuthenticationConfig, "authentication-config", "",
+		"Path to a Kubernetes AuthenticationConfiguration YAML file "+
+			"(apiVersion: apiserver.config.k8s.io/v1beta1, kind: AuthenticationConfiguration). "+
+			"The jwt field defines additional OIDC providers accepted alongside --oidc-issuer-url.")
 
 	return o
 }

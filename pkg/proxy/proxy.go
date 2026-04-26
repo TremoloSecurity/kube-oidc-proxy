@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"time"
 
 	"k8s.io/apiserver/pkg/apis/apiserver"
@@ -135,61 +134,18 @@ func New(restConfig *rest.Config,
 	// build union of all request authenticators (primary + extra providers)
 	requestAuthers := []authenticator.Request{bearertoken.New(primaryTokenAuther)}
 
-	if oidcOptions.ExtraProvidersConfig != "" {
-		extraProviders, err := options.LoadExtraProviders(oidcOptions.ExtraProvidersConfig)
+	if oidcOptions.AuthenticationConfig != "" {
+		extraJWTConfigs, err := options.LoadAuthenticationConfig(oidcOptions.AuthenticationConfig)
 		if err != nil {
-			return nil, fmt.Errorf("loading extra OIDC providers: %w", err)
+			return nil, fmt.Errorf("loading authentication config: %w", err)
 		}
-		for _, p := range extraProviders {
-			caContent := caFromFile.CurrentCABundleContent()
-			if p.CAFile != "" {
-				caContent, _ = os.ReadFile(p.CAFile)
-			}
-
-			var usernameMapping apiserver.PrefixedClaimOrExpression
-			if p.UsernameExpression != "" {
-				usernameMapping = apiserver.PrefixedClaimOrExpression{
-					Expression: p.UsernameExpression,
-				}
-			} else {
-				usernamePrefix := p.UsernamePrefix
-				usernameMapping = apiserver.PrefixedClaimOrExpression{
-					Claim:  p.UsernameClaim,
-					Prefix: &usernamePrefix,
-				}
-			}
-
-			var groupsMapping apiserver.PrefixedClaimOrExpression
-			if p.GroupsExpression != "" {
-				groupsMapping = apiserver.PrefixedClaimOrExpression{
-					Expression: p.GroupsExpression,
-				}
-			} else {
-				groupsPrefix := p.GroupsPrefix
-				groupsMapping = apiserver.PrefixedClaimOrExpression{
-					Claim:  p.GroupsClaim,
-					Prefix: &groupsPrefix,
-				}
-			}
-
-			extraJWTConfig := apiserver.JWTAuthenticator{
-				Issuer: apiserver.Issuer{
-					URL:                  p.IssuerURL,
-					Audiences:            p.Audiences,
-					AudienceMatchPolicy:  apiserver.AudienceMatchPolicyMatchAny,
-					CertificateAuthority: string(caContent),
-				},
-				ClaimMappings: apiserver.ClaimMappings{
-					Username: usernameMapping,
-					Groups:   groupsMapping,
-				},
-			}
+		for _, jwtConfig := range extraJWTConfigs {
 			extraTokenAuther, err := oidc.New(ctx.TODO(), oidc.Options{
 				SupportedSigningAlgs: oidcOptions.SigningAlgs,
-				JWTAuthenticator:     extraJWTConfig,
+				JWTAuthenticator:     jwtConfig,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create extra OIDC authenticator for %s: %w", p.IssuerURL, err)
+				return nil, fmt.Errorf("extra OIDC authenticator for %s: %w", jwtConfig.Issuer.URL, err)
 			}
 			requestAuthers = append(requestAuthers, bearertoken.New(extraTokenAuther))
 		}

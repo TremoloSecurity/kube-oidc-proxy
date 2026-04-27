@@ -14,6 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
+	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/plugin/pkg/authenticator/token/oidc"
 	"k8s.io/client-go/rest"
@@ -54,7 +55,7 @@ type Config struct {
 type errorHandlerFn func(http.ResponseWriter, *http.Request, error)
 
 type Proxy struct {
-	oidcRequestAuther     *bearertoken.Authenticator
+	oidcRequestAuther     authenticator.Request
 	tokenAuther           authenticator.Token
 	tokenReviewer         *tokenreview.TokenReview
 	subjectAccessReviewer *subjectaccessreview.SubjectAccessReview
@@ -95,14 +96,13 @@ func New(restConfig *rest.Config,
 		CAFile: oidcOptions.CAFile,
 	}
 
-	// setup static JWT Auhenticator
-	jwtConfig := apiserver.JWTAuthenticator{
+	// build the primary OIDC authenticator
+	primaryJWTConfig := apiserver.JWTAuthenticator{
 		Issuer: apiserver.Issuer{
 			URL:                  oidcOptions.IssuerURL,
 			Audiences:            []string{oidcOptions.ClientID},
 			CertificateAuthority: string(caFromFile.CurrentCABundleContent()),
 		},
-
 		ClaimMappings: apiserver.ClaimMappings{
 			Username: apiserver.PrefixedClaimOrExpression{
 				Claim:  oidcOptions.UsernameClaim,
@@ -115,15 +115,40 @@ func New(restConfig *rest.Config,
 		},
 	}
 
-	// generate tokenAuther from oidc config
-	tokenAuther, err := oidc.New(ctx.TODO(), oidc.Options{
-		CAContentProvider: caFromFile,
-		//RequiredClaims:       oidcOptions.RequiredClaims,
+	// Only pass a CAContentProvider when an actual CA file is configured;
+	// passing one with empty content causes the k8s library to fail validation.
+	primaryOIDCOpts := oidc.Options{
+		//RequiredClaims:   oidcOptions.RequiredClaims,
 		SupportedSigningAlgs: oidcOptions.SigningAlgs,
-		JWTAuthenticator:     jwtConfig,
-	})
+		JWTAuthenticator:     primaryJWTConfig,
+	}
+	if oidcOptions.CAFile != "" {
+		primaryOIDCOpts.CAContentProvider = caFromFile
+	}
+
+	primaryTokenAuther, err := oidc.New(ctx.TODO(), primaryOIDCOpts)
 	if err != nil {
 		return nil, err
+	}
+
+	// build union of all request authenticators (primary + extra providers)
+	requestAuthers := []authenticator.Request{bearertoken.New(primaryTokenAuther)}
+
+	if oidcOptions.AuthenticationConfig != "" {
+		extraJWTConfigs, err := options.LoadAuthenticationConfig(oidcOptions.AuthenticationConfig)
+		if err != nil {
+			return nil, fmt.Errorf("loading authentication config: %w", err)
+		}
+		for _, jwtConfig := range extraJWTConfigs {
+			extraTokenAuther, err := oidc.New(ctx.TODO(), oidc.Options{
+				SupportedSigningAlgs: oidcOptions.SigningAlgs,
+				JWTAuthenticator:     jwtConfig,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("extra OIDC authenticator for %s: %w", jwtConfig.Issuer.URL, err)
+			}
+			requestAuthers = append(requestAuthers, bearertoken.New(extraTokenAuther))
+		}
 	}
 
 	auditor, err := audit.New(auditOptions, config.ExternalAddress, ssinfo)
@@ -138,8 +163,8 @@ func New(restConfig *rest.Config,
 		subjectAccessReviewer: subjectAccessReviewer,
 		secureServingInfo:     ssinfo,
 		config:                config,
-		oidcRequestAuther:     bearertoken.New(tokenAuther),
-		tokenAuther:           tokenAuther,
+		oidcRequestAuther:     unionauth.New(requestAuthers...),
+		tokenAuther:           primaryTokenAuther,
 		auditor:               auditor,
 	}, nil
 }

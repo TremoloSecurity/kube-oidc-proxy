@@ -91,8 +91,11 @@ func New(restConfig *rest.Config,
 	config *Config) (*Proxy, error) {
 
 	// load the CA from the file listed in the options
-	caFromFile := CAFromFile{
-		CAFile: oidcOptions.CAFile,
+	var caFromFile oidc.CAContentProvider
+	if len(oidcOptions.CAFile) != 0 {
+		caFromFile = CAFromFile{
+			CAFile: oidcOptions.CAFile,
+		}
 	}
 
 	// setup static JWT Auhenticator

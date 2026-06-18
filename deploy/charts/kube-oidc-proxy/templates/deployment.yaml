@@ -60,7 +60,10 @@ spec:
           - "--oidc-signing-algs=$(OIDC_SIGNING_ALGS)"
           {{ end }}
           {{- if .Values.oidc.requiredClaims }}
-          - "--oidc-signing-algs=$(OIDC_REQUIRED_CLAIMS)"
+          - "--oidc-required-claims=$(OIDC_REQUIRED_CLAIMS)"
+          {{ end }}
+          {{- if .Values.oidc.authenticationConfig }}
+          - "--authentication-config=/etc/oidc/authentication-config.yaml"
           {{ end }}
           {{- if .Values.tokenPassthrough.enabled }}
           - "--token-passthrough"
@@ -131,7 +134,7 @@ spec:
               key: oidc.required-claims
         {{ end }}
         volumeMounts:
-          {{- if .Values.oidc.caPEM }}
+          {{- if or .Values.oidc.caPEM .Values.oidc.authenticationConfig }}
           - name: kube-oidc-proxy-config
             mountPath: /etc/oidc
             readOnly: true
@@ -141,14 +144,20 @@ spec:
             readOnly: true
           {{- if .Values.extraVolumeMounts }}{{ toYaml .Values.extraVolumeMounts | trim | nindent 10 }}{{ end }}
       volumes:
-        {{ if .Values.oidc.caPEM }}
+        {{- if or .Values.oidc.caPEM .Values.oidc.authenticationConfig }}
         - name: kube-oidc-proxy-config
           secret:
             secretName: {{ include "kube-oidc-proxy.fullname" . }}-config
             items:
+            {{- if .Values.oidc.caPEM }}
             - key: oidc.ca-pem
               path: oidc-ca.pem
-        {{ end }}
+            {{- end }}
+            {{- if .Values.oidc.authenticationConfig }}
+            - key: oidc.authentication-config
+              path: authentication-config.yaml
+            {{- end }}
+        {{- end }}
         {{- if .Values.extraVolumes }}{{ toYaml .Values.extraVolumes | trim | nindent 8 }}{{ end }}
         - name: kube-oidc-proxy-tls
           secret:

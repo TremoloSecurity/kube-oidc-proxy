@@ -100,10 +100,10 @@ func (h *HealthCheck) Check() error {
 	}
 
 	if h.requireAll && len(pending) > 0 {
-		return fmt.Errorf("OIDC providers not yet initialized: %v", pending)
+		return errors.New("OIDC providers not yet initialized")
 	}
 	if !h.requireAll && len(h.initialized) == 0 {
-		return fmt.Errorf("no OIDC provider initialized yet: %v", pending)
+		return errors.New("no OIDC provider initialized yet")
 	}
 
 	h.ready.Store(true)

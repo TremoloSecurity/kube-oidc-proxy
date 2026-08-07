@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -22,35 +23,54 @@ import (
 
 func (h *Helper) DeployProxy(ns *corev1.Namespace, issuerURL *url.URL, clientID string,
 	oidcKeyBundle *util.KeyBundle, extraVolumes []corev1.Volume, extraArgs ...string) (*util.KeyBundle, *url.URL, error) {
-	cnt := corev1.Container{
-		Name:            kind.ProxyImageName,
-		Image:           kind.ProxyImageName,
-		ImagePullPolicy: corev1.PullNever,
-		Args: append([]string{
-			"kube-oidc-proxy",
-			"--secure-port=6443",
-			"--tls-cert-file=/tls/cert.pem",
-			"--tls-private-key-file=/tls/key.pem",
+	authConfig := false
+	for _, a := range extraArgs {
+		if strings.HasPrefix(a, "--authentication-config") {
+			authConfig = true
+			break
+		}
+	}
+
+	args := []string{
+		"kube-oidc-proxy",
+		"--secure-port=6443",
+		"--tls-cert-file=/tls/cert.pem",
+		"--tls-private-key-file=/tls/key.pem",
+	}
+	if !authConfig {
+		args = append(args,
 			fmt.Sprintf("--oidc-client-id=%s", clientID),
 			fmt.Sprintf("--oidc-issuer-url=%s", issuerURL),
 			"--oidc-username-claim=email",
 			"--oidc-groups-claim=groups",
 			"--oidc-ca-file=/oidc/ca.pem",
 			"--oidc-ca-file=/oidc/ca.pem",
-			"--v=10",
-		}, extraArgs...),
-		VolumeMounts: []corev1.VolumeMount{
-			corev1.VolumeMount{
-				MountPath: "/tls",
-				Name:      "tls",
-				ReadOnly:  true,
-			},
-			corev1.VolumeMount{
-				MountPath: "/oidc",
-				Name:      "oidc",
-				ReadOnly:  true,
-			},
+		)
+	}
+	args = append(args, "--v=10")
+	args = append(args, extraArgs...)
+
+	volumeMounts := []corev1.VolumeMount{
+		corev1.VolumeMount{
+			MountPath: "/tls",
+			Name:      "tls",
+			ReadOnly:  true,
 		},
+	}
+	if !authConfig {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			MountPath: "/oidc",
+			Name:      "oidc",
+			ReadOnly:  true,
+		})
+	}
+
+	cnt := corev1.Container{
+		Name:            kind.ProxyImageName,
+		Image:           kind.ProxyImageName,
+		ImagePullPolicy: corev1.PullNever,
+		Args:            args,
+		VolumeMounts:    volumeMounts,
 		Ports: []corev1.ContainerPort{
 			corev1.ContainerPort{
 				ContainerPort: 6443,
@@ -79,28 +99,30 @@ func (h *Helper) DeployProxy(ns *corev1.Namespace, issuerURL *url.URL, clientID 
 		})
 	}
 
-	volumes := append(extraVolumes, corev1.Volume{
-		Name: "oidc",
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: "oidc-ca",
+	volumes := extraVolumes
+	if !authConfig {
+		volumes = append(volumes, corev1.Volume{
+			Name: "oidc",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: "oidc-ca",
+				},
 			},
-		},
-	})
+		})
 
-	sec := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "oidc-ca",
-			Namespace: ns.Name,
-		},
-		Data: map[string][]byte{
-			"ca.pem": oidcKeyBundle.CertBytes,
-		},
-	}
+		sec := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "oidc-ca",
+				Namespace: ns.Name,
+			},
+			Data: map[string][]byte{
+				"ca.pem": oidcKeyBundle.CertBytes,
+			},
+		}
 
-	_, err := h.KubeClient.CoreV1().Secrets(ns.Name).Create(context.TODO(), sec, metav1.CreateOptions{})
-	if err != nil {
-		return nil, nil, err
+		if _, err := h.KubeClient.CoreV1().Secrets(ns.Name).Create(context.TODO(), sec, metav1.CreateOptions{}); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	bundle, appURL, err := h.deployApp(ns.Name, kind.ProxyImageName, corev1.ServiceTypeNodePort, cnt, volumes...)
@@ -245,6 +267,10 @@ func (h *Helper) DeployProxy(ns *corev1.Namespace, issuerURL *url.URL, clientID 
 }
 
 func (h *Helper) DeployIssuer(ns string) (*util.KeyBundle, *url.URL, error) {
+	return h.DeployNamedIssuer(ns, kind.IssuerImageName)
+}
+
+func (h *Helper) DeployNamedIssuer(ns, name string) (*util.KeyBundle, *url.URL, error) {
 	cnt := corev1.Container{
 		Name:            kind.IssuerImageName,
 		Image:           kind.IssuerImageName,
@@ -252,7 +278,7 @@ func (h *Helper) DeployIssuer(ns string) (*util.KeyBundle, *url.URL, error) {
 		Args: []string{
 			"oidc-issuer",
 			"--secure-port=6443",
-			fmt.Sprintf("--issuer-url=https://oidc-issuer-e2e.%s.svc.cluster.local:6443", ns),
+			fmt.Sprintf("--issuer-url=https://%s.%s.svc.cluster.local:6443", name, ns),
 			"--tls-cert-file=/tls/cert.pem",
 			"--tls-private-key-file=/tls/key.pem",
 		},
@@ -270,7 +296,7 @@ func (h *Helper) DeployIssuer(ns string) (*util.KeyBundle, *url.URL, error) {
 		},
 	}
 
-	bundle, appURL, err := h.deployApp(ns, kind.IssuerImageName, corev1.ServiceTypeClusterIP, cnt)
+	bundle, appURL, err := h.deployApp(ns, name, corev1.ServiceTypeClusterIP, cnt)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -537,7 +563,10 @@ func (h *Helper) DeleteProxy(ns string) error {
 	return h.deleteApp(ns, kind.ProxyImageName, "oidc-ca")
 }
 func (h *Helper) DeleteIssuer(ns string) error {
-	return h.deleteApp(ns, kind.IssuerImageName)
+	return h.DeleteNamedIssuer(ns, kind.IssuerImageName)
+}
+func (h *Helper) DeleteNamedIssuer(ns, name string) error {
+	return h.deleteApp(ns, name)
 }
 func (h *Helper) DeleteFakeAPIServer(ns string) error {
 	return h.deleteApp(ns, kind.FakeAPIServerImageName)

@@ -120,6 +120,7 @@ users:
 ```
 
 ## Configuration
+ - [Multi-issuer OIDC authentication](./docs/tasks/multi-issuer.md)
  - [Token Passthrough](./docs/tasks/token-passthrough.md)
  - [No Impersonation](./docs/tasks/no-impersonation.md)
  - [Extra Impersonations Headers](./docs/tasks/extra-impersonation-headers.md)

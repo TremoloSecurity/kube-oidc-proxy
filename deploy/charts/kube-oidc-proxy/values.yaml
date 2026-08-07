@@ -39,13 +39,14 @@ tls:
 # working.
 oidc:
   # A minimal configuration requires setting clientId, issuerUrl and usernameClaim
-  # values.
+  # values. Not required when authenticationConfig.content is set.
   clientId: ""
   issuerUrl: ""
   usernameClaim: ""
 
   # PEM encoded value of CA cert that will verify TLS connection to
   # OIDC issuer URL. If not provided, default hosts root CA's will be used.
+  # Not used when authenticationConfig.content is set (CA is inline in the config).
   caPEM:
 
   usernamePrefix:
@@ -55,6 +56,24 @@ oidc:
   signingAlgs:
     - RS256
   requiredClaims: {}
+
+# Multi-issuer OIDC authentication via AuthenticationConfiguration file
+# (apiserver.config.k8s.io/v1 or v1beta1). Mutually exclusive with ALL oidc.*
+# fields (issuerUrl, clientId, usernameClaim, caPEM, usernamePrefix,
+# groupsClaim, groupsPrefix, signingAlgs, requiredClaims). When set, each
+# issuer's CA must be specified inline in the configuration file under
+# issuer.certificateAuthority.
+authenticationConfig:
+  # YAML content of an AuthenticationConfiguration resource.
+  # When non-empty, --authentication-config is passed to the proxy and the
+  # individual --oidc-* flags are omitted.
+  content: ""
+
+# If true, the readiness probe waits for every issuer in
+# authenticationConfig.content to initialize (JWKS fetched) before the pod
+# reports ready. Default false: ready once at least one issuer initializes,
+# so a single IdP outage cannot block a rollout for all other systems.
+readinessRequireAllIssuers: false
 
 # To enable token passthrough feature
 # https://github.com/jetstack/kube-oidc-proxy/blob/master/docs/tasks/token-passthrough.md

@@ -18,6 +18,8 @@ spec:
   {{ end }}
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/secret_config.yaml") . | sha256sum }}
       labels:
         app.kubernetes.io/name: {{ include "kube-oidc-proxy.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
@@ -41,22 +43,29 @@ spec:
           - "--secure-port=8443"
           - "--tls-cert-file=/etc/oidc/tls/crt.pem"
           - "--tls-private-key-file=/etc/oidc/tls/key.pem"
+          {{- if .Values.authenticationConfig.content }}
+          - "--authentication-config=/etc/oidc/authentication-config.yaml"
+          {{- else }}
           - "--oidc-client-id=$(OIDC_CLIENT_ID)"
           - "--oidc-issuer-url=$(OIDC_ISSUER_URL)"
           - "--oidc-username-claim=$(OIDC_USERNAME_CLAIM)"
           {{- if .Values.oidc.caPEM }}
           - "--oidc-ca-file=/etc/oidc/oidc-ca.pem"
-          {{ end }}
-          {{- if .Values.oidc.usernamePrefix }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.readinessRequireAllIssuers }}
+          - "--readiness-require-all-issuers"
+          {{- end }}
+          {{- if and .Values.oidc.usernamePrefix (not .Values.authenticationConfig.content) }}
           - "--oidc-username-prefix=$(OIDC_USERNAME_PREFIX)"
           {{ end }}
-          {{- if .Values.oidc.groupsClaim }}
+          {{- if and .Values.oidc.groupsClaim (not .Values.authenticationConfig.content) }}
           - "--oidc-groups-claim=$(OIDC_GROUPS_CLAIM)"
           {{ end }}
-          {{- if .Values.oidc.groupsPrefix }}
+          {{- if and .Values.oidc.groupsPrefix (not .Values.authenticationConfig.content) }}
           - "--oidc-groups-prefix=$(OIDC_GROUPS_PREFIX)"
           {{ end }}
-          {{- if .Values.oidc.signingAlgs }}
+          {{- if and .Values.oidc.signingAlgs (not .Values.authenticationConfig.content) }}
           - "--oidc-signing-algs=$(OIDC_SIGNING_ALGS)"
           {{ end }}
           {{- if .Values.oidc.requiredClaims }}
@@ -80,6 +89,7 @@ spec:
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
         env:
+        {{- if not .Values.authenticationConfig.content }}
         - name: OIDC_CLIENT_ID
           valueFrom:
             secretKeyRef:
@@ -95,28 +105,29 @@ spec:
             secretKeyRef:
               name: {{ include "kube-oidc-proxy.fullname" . }}-config
               key: oidc.username-claim
-        {{- if .Values.oidc.usernamePrefix }}
+        {{- end }}
+        {{- if and .Values.oidc.usernamePrefix (not .Values.authenticationConfig.content) }}
         - name: OIDC_USERNAME_PREFIX
           valueFrom:
             secretKeyRef:
               name: {{ include "kube-oidc-proxy.fullname" . }}-config
               key: oidc.username-prefix
         {{ end }}
-        {{- if .Values.oidc.groupsClaim }}
+        {{- if and .Values.oidc.groupsClaim (not .Values.authenticationConfig.content) }}
         - name: OIDC_GROUPS_CLAIM
           valueFrom:
             secretKeyRef:
               name: {{ include "kube-oidc-proxy.fullname" . }}-config
               key: oidc.groups-claim
         {{ end }}
-        {{- if .Values.oidc.groupsPrefix }}
+        {{- if and .Values.oidc.groupsPrefix (not .Values.authenticationConfig.content) }}
         - name: OIDC_GROUPS_PREFIX
           valueFrom:
             secretKeyRef:
               name: {{ include "kube-oidc-proxy.fullname" . }}-config
               key: oidc.groups-prefix
         {{ end }}
-        {{- if .Values.oidc.signingAlgs }}
+        {{- if and .Values.oidc.signingAlgs (not .Values.authenticationConfig.content) }}
         - name: OIDC_SIGNING_ALGS
           valueFrom:
             secretKeyRef:
@@ -131,24 +142,30 @@ spec:
               key: oidc.required-claims
         {{ end }}
         volumeMounts:
-          {{- if .Values.oidc.caPEM }}
+          {{- if or .Values.oidc.caPEM .Values.authenticationConfig.content }}
           - name: kube-oidc-proxy-config
             mountPath: /etc/oidc
             readOnly: true
-          {{ end }}
+          {{- end }}
           - name: kube-oidc-proxy-tls
             mountPath: /etc/oidc/tls
             readOnly: true
           {{- if .Values.extraVolumeMounts }}{{ toYaml .Values.extraVolumeMounts | trim | nindent 10 }}{{ end }}
       volumes:
-        {{ if .Values.oidc.caPEM }}
+        {{- if or .Values.oidc.caPEM .Values.authenticationConfig.content }}
         - name: kube-oidc-proxy-config
           secret:
             secretName: {{ include "kube-oidc-proxy.fullname" . }}-config
             items:
+            {{- if .Values.oidc.caPEM }}
             - key: oidc.ca-pem
               path: oidc-ca.pem
-        {{ end }}
+            {{- end }}
+            {{- if .Values.authenticationConfig.content }}
+            - key: authentication-config.yaml
+              path: authentication-config.yaml
+            {{- end }}
+        {{- end }}
         {{- if .Values.extraVolumes }}{{ toYaml .Values.extraVolumes | trim | nindent 8 }}{{ end }}
         - name: kube-oidc-proxy-tls
           secret:

@@ -14,6 +14,8 @@ type KubeOIDCProxyOptions struct {
 	DisableImpersonation bool
 	ReadinessProbePort   int
 
+	ReadinessRequireAllIssuers bool
+
 	FlushInterval time.Duration
 
 	ExtraHeaderOptions ExtraHeaderOptions
@@ -42,6 +44,13 @@ func (k *KubeOIDCProxyOptions) AddFlags(fs *pflag.FlagSet) *KubeOIDCProxyOptions
 
 	fs.IntVarP(&k.ReadinessProbePort, "readiness-probe-port", "P", 8080,
 		"Port to expose readiness probe.")
+
+	fs.BoolVar(&k.ReadinessRequireAllIssuers, "readiness-require-all-issuers", false,
+		"If true, the readiness probe reports ready only once every issuer in the "+
+			"authentication configuration has been initialized (JWKS fetched). If false "+
+			"(default), the proxy reports ready as soon as at least one issuer is "+
+			"initialized; issuers still pending are logged and keep initializing in "+
+			"the background. Configuration errors always fail startup regardless.")
 
 	fs.DurationVar(&k.FlushInterval, "flush-interval", time.Millisecond*50,
 		"Specifies the interval to flush request bodies. If 0ms, "+

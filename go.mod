@@ -24,13 +24,7 @@ require (
 	sigs.k8s.io/kind v0.33.0
 )
 
-replace (
-	github.com/emicklei/go-restful => github.com/emicklei/go-restful/v3 v3.8.0
-	golang.org/x/crypto => golang.org/x/crypto v0.48.0
-	google.golang.org/grpc => google.golang.org/grpc v1.83.1
-
-	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
-)
+replace gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect

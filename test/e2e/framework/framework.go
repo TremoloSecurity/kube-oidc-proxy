@@ -30,6 +30,15 @@ type Framework struct {
 
 	Namespace *corev1.Namespace
 
+	// BeforeProxyDeploy, if set, runs after the primary issuer is deployed and
+	// before the proxy is deployed. Tests use it to stage resources the proxy
+	// needs at startup (e.g. an AuthenticationConfiguration ConfigMap) and to
+	// populate ExtraProxyVolumes / ExtraProxyArgs. Avoids a delete-redeploy
+	// cycle for tests that need non-default proxy flags.
+	BeforeProxyDeploy func()
+	ExtraProxyVolumes []corev1.Volume
+	ExtraProxyArgs    []string
+
 	config *config.Config
 	helper *helper.Helper
 
@@ -78,13 +87,18 @@ func (f *Framework) BeforeEach() {
 	issuerKeyBundle, issuerURL, err := f.helper.DeployIssuer(f.Namespace.Name)
 	Expect(err).NotTo(HaveOccurred())
 
+	f.issuerURL, f.issuerKeyBundle = issuerURL, issuerKeyBundle
+
+	if f.BeforeProxyDeploy != nil {
+		f.BeforeProxyDeploy()
+	}
+
 	By("Deploying kube-oidc-proxy")
 	proxyKeyBundle, proxyURL, err := f.helper.DeployProxy(f.Namespace,
-		issuerURL, clientID, issuerKeyBundle, nil)
+		issuerURL, clientID, issuerKeyBundle, f.ExtraProxyVolumes, f.ExtraProxyArgs...)
 	Expect(err).NotTo(HaveOccurred())
 
-	f.issuerURL, f.proxyURL = issuerURL, proxyURL
-	f.issuerKeyBundle, f.proxyKeyBundle = issuerKeyBundle, proxyKeyBundle
+	f.proxyURL, f.proxyKeyBundle = proxyURL, proxyKeyBundle
 
 	By("Creating Proxy Client")
 	f.ProxyClient = f.NewProxyClient()

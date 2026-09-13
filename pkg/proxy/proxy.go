@@ -2,20 +2,16 @@
 package proxy
 
 import (
-	ctx "context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"time"
 
-	"k8s.io/apiserver/pkg/apis/apiserver"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
 	"k8s.io/apiserver/pkg/server"
-	"k8s.io/apiserver/plugin/pkg/authenticator/token/oidc"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
 	"k8s.io/klog/v2"
@@ -71,60 +67,13 @@ type Proxy struct {
 	handleError errorHandlerFn
 }
 
-// implement oidc.CAContentProvider to load
-// the ca file from the options
-type CAFromFile struct {
-	CAFile string
-}
-
-func (caFromFile CAFromFile) CurrentCABundleContent() []byte {
-	res, _ := ioutil.ReadFile(caFromFile.CAFile)
-	return res
-}
-
 func New(restConfig *rest.Config,
-	oidcOptions *options.OIDCAuthenticationOptions,
+	tokenAuther authenticator.Token,
 	auditOptions *options.AuditOptions,
 	tokenReviewer *tokenreview.TokenReview,
 	subjectAccessReviewer *subjectaccessreview.SubjectAccessReview,
 	ssinfo *server.SecureServingInfo,
 	config *Config) (*Proxy, error) {
-
-	// load the CA from the file listed in the options
-	caFromFile := CAFromFile{
-		CAFile: oidcOptions.CAFile,
-	}
-
-	// setup static JWT Auhenticator
-	jwtConfig := apiserver.JWTAuthenticator{
-		Issuer: apiserver.Issuer{
-			URL:                  oidcOptions.IssuerURL,
-			Audiences:            []string{oidcOptions.ClientID},
-			CertificateAuthority: string(caFromFile.CurrentCABundleContent()),
-		},
-
-		ClaimMappings: apiserver.ClaimMappings{
-			Username: apiserver.PrefixedClaimOrExpression{
-				Claim:  oidcOptions.UsernameClaim,
-				Prefix: &oidcOptions.UsernamePrefix,
-			},
-			Groups: apiserver.PrefixedClaimOrExpression{
-				Claim:  oidcOptions.GroupsClaim,
-				Prefix: &oidcOptions.GroupsPrefix,
-			},
-		},
-	}
-
-	// generate tokenAuther from oidc config
-	tokenAuther, err := oidc.New(ctx.TODO(), oidc.Options{
-		CAContentProvider: caFromFile,
-		//RequiredClaims:       oidcOptions.RequiredClaims,
-		SupportedSigningAlgs: oidcOptions.SigningAlgs,
-		JWTAuthenticator:     jwtConfig,
-	})
-	if err != nil {
-		return nil, err
-	}
 
 	auditor, err := audit.New(auditOptions, config.ExternalAddress, ssinfo)
 	if err != nil {

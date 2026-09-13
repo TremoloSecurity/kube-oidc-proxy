@@ -17,12 +17,13 @@ const (
 )
 
 type Options struct {
-	App                *KubeOIDCProxyOptions
-	OIDCAuthentication *OIDCAuthenticationOptions
-	SecureServing      *SecureServingOptions
-	Audit              *AuditOptions
-	Client             *ClientOptions
-	Misc               *MiscOptions
+	App                  *KubeOIDCProxyOptions
+	OIDCAuthentication   *OIDCAuthenticationOptions
+	AuthenticationConfig *AuthenticationConfigOptions
+	SecureServing        *SecureServingOptions
+	Audit                *AuditOptions
+	Client               *ClientOptions
+	Misc                 *MiscOptions
 
 	nfs *cliflag.NamedFlagSets
 }
@@ -32,12 +33,13 @@ func New() *Options {
 
 	// Add flags to command sets
 	return &Options{
-		App:                NewKubeOIDCProxyOptions(nfs),
-		OIDCAuthentication: NewOIDCAuthenticationOptions(nfs),
-		SecureServing:      NewSecureServingOptions(nfs),
-		Audit:              NewAuditOptions(nfs),
-		Client:             NewClientOptions(nfs),
-		Misc:               NewMiscOptions(nfs),
+		App:                  NewKubeOIDCProxyOptions(nfs),
+		OIDCAuthentication:   NewOIDCAuthenticationOptions(nfs),
+		AuthenticationConfig: NewAuthenticationConfigOptions(nfs),
+		SecureServing:        NewSecureServingOptions(nfs),
+		Audit:                NewAuditOptions(nfs),
+		Client:               NewClientOptions(nfs),
+		Misc:                 NewMiscOptions(nfs),
 
 		nfs: nfs,
 	}
@@ -71,7 +73,17 @@ func (o *Options) Validate(cmd *cobra.Command) error {
 
 	var errs []error
 
-	if err := o.OIDCAuthentication.Validate(); err != nil {
+	if err := o.AuthenticationConfig.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	authConfigSet := o.AuthenticationConfig.ConfigFile != ""
+
+	if authConfigSet && oidcFlagsChanged(cmd) {
+		errs = append(errs, fmt.Errorf("authentication-config and --oidc-* flags are mutually exclusive"))
+	}
+
+	if err := o.OIDCAuthentication.Validate(authConfigSet); err != nil {
 		errs = append(errs, err)
 	}
 
@@ -97,4 +109,25 @@ func (o *Options) Validate(cmd *cobra.Command) error {
 	}
 
 	return nil
+}
+
+var oidcFlagNames = []string{
+	"oidc-issuer-url",
+	"oidc-client-id",
+	"oidc-ca-file",
+	"oidc-username-claim",
+	"oidc-username-prefix",
+	"oidc-groups-claim",
+	"oidc-groups-prefix",
+	"oidc-signing-algs",
+	"oidc-required-claim",
+}
+
+func oidcFlagsChanged(cmd *cobra.Command) bool {
+	for _, name := range oidcFlagNames {
+		if f := cmd.Flag(name); f != nil && f.Changed {
+			return true
+		}
+	}
+	return false
 }

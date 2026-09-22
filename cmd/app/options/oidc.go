@@ -25,11 +25,16 @@ func NewOIDCAuthenticationOptions(nfs *cliflag.NamedFlagSets) *OIDCAuthenticatio
 	return new(OIDCAuthenticationOptions).AddFlags(nfs.FlagSet("OIDC"))
 }
 
-func (o *OIDCAuthenticationOptions) Validate() error {
+// Validate checks the OIDC options. This flag is mutually exclusive with --authentication-config:
+// when authConfigSet is true, --oidc-* flags must not be set (enforced by Options.Validate)
+// and their individual validation is skipped.
+func (o *OIDCAuthenticationOptions) Validate(authConfigSet bool) error {
+	if authConfigSet {
+		return nil
+	}
 	if o != nil && (len(o.IssuerURL) > 0) != (len(o.ClientID) > 0) {
 		return fmt.Errorf("oidc-issuer-url and oidc-client-id should be specified together")
 	}
-
 	return nil
 }
 

@@ -45,6 +45,18 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
 {{/*
+AuthenticationConfiguration YAML content for --authentication-config flag.
+Generates a valid apiserver.config.k8s.io/v1beta1 AuthenticationConfiguration document
+from .Values.oidc.authenticationConfig.jwt.
+*/}}
+{{- define "kube-oidc-proxy.authenticationConfig" -}}
+apiVersion: apiserver.config.k8s.io/v1beta1
+kind: AuthenticationConfiguration
+jwt:
+{{ .Values.oidc.authenticationConfig.jwt | toYaml }}
+{{- end -}}
+
+{{/*
 Required claims serialized to CLI argument
 */}}
 {{- define "requiredClaims" -}}

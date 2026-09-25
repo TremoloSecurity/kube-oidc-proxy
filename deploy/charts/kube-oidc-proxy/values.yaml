@@ -56,6 +56,31 @@ oidc:
     - RS256
   requiredClaims: {}
 
+  # Additional OIDC providers accepted alongside the primary issuerUrl/clientId.
+  # Uses the standard Kubernetes AuthenticationConfiguration format.
+  # See: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#using-authentication-configuration
+  #
+  # Example:
+  #   authenticationConfig:
+  #     jwt:
+  #     - issuer:
+  #         url: "https://accounts.google.com"
+  #         audiences: ["my-client-id.apps.googleusercontent.com"]
+  #       claimMappings:
+  #         username:
+  #           claim: email
+  #           prefix: ""
+  #         groups:
+  #           claim: groups
+  #           prefix: ""
+  #     - issuer:
+  #         url: "https://gitlab.example.com"
+  #         audiences: ["https://gitlab.example.com"]
+  #       claimMappings:
+  #         username:
+  #           expression: "'gitlab:' + claims.sub"
+  authenticationConfig: {}
+
 # To enable token passthrough feature
 # https://github.com/jetstack/kube-oidc-proxy/blob/master/docs/tasks/token-passthrough.md
 tokenPassthrough:

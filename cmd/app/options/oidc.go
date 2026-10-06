@@ -3,6 +3,7 @@ package options
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/pflag"
 
@@ -19,6 +20,11 @@ type OIDCAuthenticationOptions struct {
 	GroupsPrefix   string
 	SigningAlgs    []string
 	RequiredClaims map[string]string
+
+	// AuthenticationConfig is a path to a Kubernetes AuthenticationConfiguration
+	// YAML file (apiVersion: apiserver.config.k8s.io/v1beta1). The jwt field
+	// defines additional OIDC providers accepted alongside the primary --oidc-issuer-url.
+	AuthenticationConfig string
 }
 
 func NewOIDCAuthenticationOptions(nfs *cliflag.NamedFlagSets) *OIDCAuthenticationOptions {
@@ -28,6 +34,12 @@ func NewOIDCAuthenticationOptions(nfs *cliflag.NamedFlagSets) *OIDCAuthenticatio
 func (o *OIDCAuthenticationOptions) Validate() error {
 	if o != nil && (len(o.IssuerURL) > 0) != (len(o.ClientID) > 0) {
 		return fmt.Errorf("oidc-issuer-url and oidc-client-id should be specified together")
+	}
+
+	if o.AuthenticationConfig != "" {
+		if _, err := os.Stat(o.AuthenticationConfig); err != nil {
+			return fmt.Errorf("authentication-config file not found: %w", err)
+		}
 	}
 
 	return nil
@@ -70,6 +82,11 @@ func (o *OIDCAuthenticationOptions) AddFlags(fs *pflag.FlagSet) *OIDCAuthenticat
 		"A key=value pair that describes a required claim in the ID Token. "+
 		"If set, the claim is verified to be present in the ID Token with a matching value. "+
 		"Repeat this flag to specify multiple claims.")
+
+	fs.StringVar(&o.AuthenticationConfig, "authentication-config", "",
+		"Path to a Kubernetes AuthenticationConfiguration YAML file "+
+			"(apiVersion: apiserver.config.k8s.io/v1beta1, kind: AuthenticationConfiguration). "+
+			"The jwt field defines additional OIDC providers accepted alongside --oidc-issuer-url.")
 
 	return o
 }

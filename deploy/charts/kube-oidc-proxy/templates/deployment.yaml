@@ -22,6 +22,9 @@ spec:
         app.kubernetes.io/name: {{ include "kube-oidc-proxy.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      {{- with .Values.priorityClassName }}
+      priotiyClassName: {{ . }}
+      {{- end }}
       serviceAccountName: {{ include "kube-oidc-proxy.fullname" . }}
       containers:
       - name: {{ .Chart.Name }}

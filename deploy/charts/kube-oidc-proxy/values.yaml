@@ -13,6 +13,17 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+
 service:
   type: ClusterIP
   port: 443

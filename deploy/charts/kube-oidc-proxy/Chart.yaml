@@ -3,7 +3,7 @@ appVersion: "v1.0.0"
 description: A Helm chart for kube-oidc-proxy
 home: https://github.com/jetstack/kube-oidc-proxy
 name: kube-oidc-proxy
-version: 0.3.2
+version: 0.4.0
 maintainers:
 - name: mhrabovcin
 - name: joshvanl

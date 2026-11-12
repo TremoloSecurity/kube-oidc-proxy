@@ -1,6 +1,6 @@
 module github.com/jetstack/kube-oidc-proxy
 
-go 1.27.1
+go 1.27.4
 
 require (
 	github.com/go-jose/go-jose/v4 v4.1.9

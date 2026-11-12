@@ -10,6 +10,7 @@ import (
 
 	v1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
 	clientazv1 "k8s.io/client-go/kubernetes/typed/authorization/v1"
 )
@@ -63,7 +64,15 @@ func (subjectAccessReview *SubjectAccessReview) CheckAuthorizedForImpersonation(
 			if keyToCheck == "impersonate-user" {
 				userToImpersonate := values[0]
 				if userToImpersonate != "" {
-					result, err := subjectAccessReview.checkRbacImpersonationAuthorization("users", userToImpersonate, requester)
+
+					userResourceType := "users"
+
+					_, _, err := serviceaccount.SplitUsername(userToImpersonate)
+					if err == nil {
+						userResourceType = "serviceaccounts"
+					}
+
+					result, err := subjectAccessReview.checkRbacImpersonationAuthorization(userResourceType, userToImpersonate, requester)
 					if err != nil {
 						return nil, err
 					} else {

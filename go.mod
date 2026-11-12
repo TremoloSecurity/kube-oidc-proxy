@@ -26,7 +26,6 @@ require (
 
 replace (
 	go.etcd.io/etcd/client/pkg/v3 => go.etcd.io/etcd/client/pkg/v3 v3.7.1
-	golang.org/x/crypto => golang.org/x/crypto v0.56.0
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 )
 

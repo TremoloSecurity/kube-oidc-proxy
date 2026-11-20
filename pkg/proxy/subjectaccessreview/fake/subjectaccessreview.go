@@ -26,6 +26,23 @@ func (f *FakeReviewer) Create(ctx context.Context, req *azv1.SubjectAccessReview
 		return nil, f.err
 	}
 
+	// make sure that we're not allowing service accounts to impersonate users
+	if req.Spec.ResourceAttributes.Resource == "users" && req.Spec.ResourceAttributes.Name == "system:serviceaccount:default:default" {
+		req.Status = azv1.SubjectAccessReviewStatus{
+			Allowed: false,
+		}
+
+		return req, nil
+	}
+
+	if req.Spec.ResourceAttributes.Resource == "serviceaccounts" && req.Spec.ResourceAttributes.Name == "system:serviceaccount:default:default" {
+		req.Status = azv1.SubjectAccessReviewStatus{
+			Allowed: true,
+		}
+
+		return req, nil
+	}
+
 	if req.Spec.ResourceAttributes.Resource == "users" && req.Spec.ResourceAttributes.Name == "jjackson" {
 		req.Status = azv1.SubjectAccessReviewStatus{
 			Allowed: true,

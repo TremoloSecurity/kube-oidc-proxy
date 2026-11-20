@@ -64,6 +64,28 @@ func TestSubectAccessReview(t *testing.T) {
 			extraImpersonationHeader: false,
 		},
 
+		"check that a service account is not checked as a user": {
+			requester: &user.DefaultInfo{
+				Name:   "system:serviceaccount:default:default",
+				UID:    "1-2-3-4",
+				Groups: []string{},
+				Extra:  map[string][]string{},
+			},
+
+			expTarget: &user.DefaultInfo{
+				Name:   "system:serviceaccount:default:default",
+				UID:    "1-2-3-4",
+				Groups: []string{},
+				Extra:  map[string][]string{},
+			},
+
+			expImpersonationHeaders:  true,
+			expAz:                    true,
+			expErr:                   nil,
+			expErrorRbac:             nil,
+			extraImpersonationHeader: false,
+		},
+
 		"user not authorized to impersonate target username": {
 			requester: &user.DefaultInfo{
 				Name:   "mmosley",

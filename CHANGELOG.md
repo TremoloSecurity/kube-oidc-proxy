@@ -1,3 +1,11 @@
+# 1.0.14
+
+**tasks:**
+ - 1.0.14 build [\#99](https://github.com/TremoloSecurity/kube-oidc-proxy/issues/99)
+
+**bugs:**
+ - validate that subjectaccessreviews are for serviceaccounts when impersonating a serviceaccount [\#100](https://github.com/TremoloSecurity/kube-oidc-proxy/issues/100)
+
 # 1.0.12
 **tasks:**
  - 1.0.12 build [\#83](https://github.com/TremoloSecurity/kube-oidc-proxy/issues/83)
